@@ -82,13 +82,14 @@ scan (')':tail) = (ClosingParenthesis, tail)
 scan ('&':tail) = (AndOperator, tail)
 scan ('|':tail) = (OrOperator, tail)
 scan ('!':tail) = (NotOperator, tail)
+scan (' ':tail) = scan tail
 scan "" = (EndOfFile, "")
 scan all
        | not $ null ident = (Identifier ident, tail)
        | otherwise        = error $ "invalid char at " ++ tail
   where ident = takeWhile isLetter all
         tail  = dropWhile isLetter all
-        isLetter = (`elem` ['a'..'z'])
+        isLetter a = (a `elem` ['a'..'z']) || (a `elem` ['A'..'Z'])
 
 -- Parser
 
@@ -131,7 +132,7 @@ parse str = case nextSymbol of EndOfFile -> formula
 
 resolveClause :: Clause -> Clause -> Maybe Clause
 resolveClause leftClause rightClause =
-  case leftLiteral of Just lit -> Just $ (delete lit leftClause) ++ (delete (negatedLiteral lit) rightClause)
+  case leftLiteral of Just lit -> Just . nub $ (delete lit leftClause) ++ (delete (negatedLiteral lit) rightClause)
                       Nothing  -> Nothing
   where leftLiteral = find (\lit -> (negatedLiteral lit) `elem` rightClause) leftClause
 
