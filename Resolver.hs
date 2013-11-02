@@ -1,8 +1,5 @@
 module Resolver
-( Formula,
-  Literal, Clause, ClauseSet,
-  formulaToClauseSet,
-  (.&), (.|), nt, a,b,c,f,f2
+( satisfiable
 ) where 
 
 import Data.List
@@ -148,7 +145,7 @@ resolve clauses =
   where resolution = resolveClauseSet clauses
         changed = (length resolution) /= (length clauses)
 
--- High-order functions
+-- High-level functions
 
 formulaToClauseSet :: Formula -> ClauseSet
 formulaToClauseSet = normalizeClauseSet . cnfToClauseSet . formulaToCNF
@@ -156,20 +153,3 @@ formulaToClauseSet = normalizeClauseSet . cnfToClauseSet . formulaToCNF
 satisfiable :: String -> Bool
 satisfiable str = not $ [] `elem` resolution
   where resolution = resolve . formulaToClauseSet . parse $ str
-
--- tools for testing
-a = Atom "a"
-b = Atom "b"
-c = Atom "c"
-f = Not $ And a b
-f2 = And f (Not f)
-
-(.&) :: Formula -> Formula -> Formula
-a .& b = (And a b)
-
-(.|) :: Formula -> Formula -> Formula
-a .| b = (Or a b)
-
-nt :: Formula -> Formula
-nt a = Not a
-
