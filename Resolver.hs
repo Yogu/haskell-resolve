@@ -5,11 +5,13 @@ module Resolver
   (.&), (.|), nt, a,b,c,f,f2
 ) where 
 
+import Data.List
+
 -- Type declarations  
 
 data Formula = Atom String | Or Formula Formula | And Formula Formula | Not Formula deriving (Eq, Show, Read)
 
-data Literal = PositiveLiteral String | NegativeLiteral String deriving (Eq, Show, Read)
+data Literal = NegativeLiteral String | PositiveLiteral String deriving (Eq, Ord, Show, Read)
 type Clause = [Literal]
 type ClauseSet = [Clause]
 
@@ -52,6 +54,20 @@ shiftAndOr f = f
 
 formulaToCNF :: Formula -> Formula
 formulaToCNF = shiftAndOr . shiftNegations
+
+-- Normalize clause sets
+
+normalizeClause :: Clause -> Clause
+normalizeClause literals
+  | overlaps = []
+  | otherwise =  [PositiveLiteral a | a <- positive] ++ [NegativeLiteral a | a <- negative]
+  where positive = sort . nub $ [ a | PositiveLiteral a <- literals]
+        negative = sort . nub $ [a | NegativeLiteral a <- literals]
+        overlaps = not . null $ intersect positive negative
+
+normalizeClauseSet :: ClauseSet -> ClauseSet
+normalizeClauseSet clauses = sort . nub . removeEmpty $ map normalizeClause clauses
+  where removeEmpty = filter (not . null)
 
 -- Lexer
 
@@ -111,7 +127,7 @@ parse str = case nextSymbol of EndOfFile -> formula
 -- High-order functions
 
 formulaToClauseSet :: Formula -> ClauseSet
-formulaToClauseSet = cnfToClauseSet . formulaToCNF
+formulaToClauseSet = normalizeClauseSet . cnfToClauseSet . formulaToCNF
 
 -- tools for testing
 a = Atom "a"
