@@ -15,6 +15,12 @@ data Literal = NegativeLiteral String | PositiveLiteral String deriving (Eq, Ord
 type Clause = [Literal]
 type ClauseSet = [Clause]
 
+-- Helpers
+
+negatedLiteral :: Literal -> Literal
+negatedLiteral (NegativeLiteral name) = PositiveLiteral name
+negatedLiteral (PositiveLiteral name) = NegativeLiteral name
+
 -- CNF formula to clause set
 
 cnfToLiteral :: Formula -> Literal
@@ -78,7 +84,7 @@ scan ('(':tail) = (OpenParenthesis, tail)
 scan (')':tail) = (ClosingParenthesis, tail)
 scan ('&':tail) = (AndOperator, tail)
 scan ('|':tail) = (OrOperator, tail)
-scan ('-':tail) = (NotOperator, tail)
+scan ('!':tail) = (NotOperator, tail)
 scan "" = (EndOfFile, "")
 scan all
        | not $ null ident = (Identifier ident, tail)
@@ -123,11 +129,33 @@ parse str = case nextSymbol of EndOfFile -> formula
                                _  -> error $ "End of input expected, but " ++ (show nextSymbol) ++ " found"
  where (formula, tail) = parseOr str
        (nextSymbol, _) = scan tail
+       
+-- Resolution
+
+resolveClause :: Clause -> Clause -> Maybe Clause
+resolveClause leftClause rightClause =
+  case leftLiteral of Just lit -> Just $ (delete lit leftClause) ++ (delete (negatedLiteral lit) rightClause)
+                      Nothing  -> Nothing
+  where leftLiteral = find (\lit -> (negatedLiteral lit) `elem` rightClause) leftClause
+
+resolveClauseSet :: ClauseSet -> ClauseSet
+resolveClauseSet clauses = nub $ clauses ++ [a | Just a <- resolvents]
+  where resolvents = [resolveClause left right | left <- clauses, right <- clauses, left /= right]
+
+resolve :: ClauseSet -> ClauseSet
+resolve clauses =
+  if changed then resolve resolution else resolution
+  where resolution = resolveClauseSet clauses
+        changed = (length resolution) /= (length clauses)
 
 -- High-order functions
 
 formulaToClauseSet :: Formula -> ClauseSet
 formulaToClauseSet = normalizeClauseSet . cnfToClauseSet . formulaToCNF
+
+satisfiable :: String -> Bool
+satisfiable str = not $ [] `elem` resolution
+  where resolution = resolve . formulaToClauseSet . parse $ str
 
 -- tools for testing
 a = Atom "a"
