@@ -16,6 +16,19 @@ formulaToClauseSet :: Formula -> ClauseSet
 formulaToClauseSet (And left right) = (formulaToClauseSet left) ++ (formulaToClauseSet right)
 formulaToClauseSet formula = [formulaToClause formula]
 
--- formulaToClauseSet (Not (And left right)) = Or $ formulaToClauseSet (Not left) formulaToClauseSet (Not right)
--- formulaToClauseSet (Not (Or left right)) = And $ formulaToClauseSet (Not left) formulaToClauseSet (Not right)
+shiftNegations :: Formula -> Formula
+shiftNegations (Not (And left right)) = Or (shiftNegations (Not left)) (shiftNegations (Not right))
+shiftNegations (Not (Or left right)) = And (shiftNegations (Not left)) (shiftNegations (Not right))
+shiftNegations (Not (Not f)) = shiftNegations f
+shiftNegations (Not (Atom name)) = Not $ Atom name
+shiftNegations (And left right) = And (shiftNegations left) (shiftNegations right)
+shiftNegations (Or left right) = Or (shiftNegations left) (shiftNegations right)
+shiftNegations (Atom name) = (Atom name)
+
+-- tools for testing
+a = Atom "a"
+b = Atom "b"
+c = Atom "c"
+f = Not $ And a b
+f2 = And f (Not f)
 
