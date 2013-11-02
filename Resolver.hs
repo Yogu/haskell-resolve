@@ -1,20 +1,28 @@
+module Resolver
+( Formula,
+  Literal, Clause, ClauseSet,
+  formulaToClauseSet,
+  (.&), (.|), nt, a,b,c,f,f2
+) where 
+  
+
 data Formula = Atom String | Or Formula Formula | And Formula Formula | Not Formula deriving (Eq, Show, Read)
 
 data Literal = PositiveLiteral String | NegativeLiteral String deriving (Eq, Show, Read)
 type Clause = [Literal]
 type ClauseSet = [Clause]
 
-formulaToLiteral :: Formula -> Literal
-formulaToLiteral (Atom name) = PositiveLiteral name
-formulaToLiteral (Not (Atom name)) = NegativeLiteral name
+cnfToLiteral :: Formula -> Literal
+cnfToLiteral (Atom name) = PositiveLiteral name
+cnfToLiteral (Not (Atom name)) = NegativeLiteral name
 
-formulaToClause :: Formula -> Clause
-formulaToClause (Or left right) = (formulaToClause left) ++ (formulaToClause right)
-formulaToClause formula = [formulaToLiteral formula]
+cnfToClause :: Formula -> Clause
+cnfToClause (Or left right) = (cnfToClause left) ++ (cnfToClause right)
+cnfToClause formula = [cnfToLiteral formula]
 
-formulaToClauseSet :: Formula -> ClauseSet
-formulaToClauseSet (And left right) = (formulaToClauseSet left) ++ (formulaToClauseSet right)
-formulaToClauseSet formula = [formulaToClause formula]
+cnfToClauseSet :: Formula -> ClauseSet
+cnfToClauseSet (And left right) = (cnfToClauseSet left) ++ (cnfToClauseSet right)
+cnfToClauseSet formula = [cnfToClause formula]
 
 shiftNegations :: Formula -> Formula
 shiftNegations (Not (And left right)) = Or (shiftNegations (Not left)) (shiftNegations (Not right))
@@ -36,6 +44,12 @@ shiftAndOr (Or l r) =
 
 shiftAndOr (And left right) = (And (shiftAndOr left) (shiftAndOr right))
 shiftAndOr f = f
+
+formulaToCNF :: Formula -> Formula
+formulaToCNF = shiftAndOr . shiftNegations
+
+formulaToClauseSet :: Formula -> ClauseSet
+formulaToClauseSet = cnfToClauseSet . formulaToCNF
 
 -- tools for testing
 a = Atom "a"
