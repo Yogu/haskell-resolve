@@ -25,10 +25,31 @@ shiftNegations (And left right) = And (shiftNegations left) (shiftNegations righ
 shiftNegations (Or left right) = Or (shiftNegations left) (shiftNegations right)
 shiftNegations (Atom name) = (Atom name)
 
+shiftAndOr :: Formula -> Formula
+-- a | (b & c) === (a | b) & (a | c)
+
+shiftAndOr (Or l r) =
+  let args = (shiftAndOr l, shiftAndOr r)
+  in case args of ((And left right), other) -> And (shiftAndOr (Or left other)) (shiftAndOr (Or right other))
+                  (other, (And left right)) -> And (shiftAndOr (Or other left)) (shiftAndOr (Or other right))
+                  (left, right)             -> Or left right
+
+shiftAndOr (And left right) = (And (shiftAndOr left) (shiftAndOr right))
+shiftAndOr f = f
+
 -- tools for testing
 a = Atom "a"
 b = Atom "b"
 c = Atom "c"
 f = Not $ And a b
 f2 = And f (Not f)
+
+(.&) :: Formula -> Formula -> Formula
+a .& b = (And a b)
+
+(.|) :: Formula -> Formula -> Formula
+a .| b = (Or a b)
+
+nt :: Formula -> Formula
+nt a = Not a
 
